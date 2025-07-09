@@ -478,8 +478,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 elements.rightColumnText.value = currentQuestion.rightColumn.join('\n');
                 break;
             case 'fill':
-                elements.questionTextLabel.textContent = 'Текст с пропущенным:';
-                elements.answersTextLabel.textContent = 'Пропущенное слово:';
+                elements.questionTextLabel.textContent = 'Формулировка задания';
+                elements.answersTextLabel.textContent = 'Текст с пропущенным словом:';
                 document.querySelector('.match-fields').style.display = 'none';
                 break;
             case 'solve':
