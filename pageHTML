@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор заданий</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tinycolor/1.4.2/tinycolor.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="main-split-container">
+            <div class="content-split-container">
+                <!-- Левая часть - редактор -->
+                <div class="edit-panel" id="editPanel">
+                    <div class="question-controls">
+                        <button id="prevQuestion" class="nav-button" disabled>
+                            <span class="material-icons">chevron_left</span>
+                        </button>
+                        <span id="questionCounter">Вопрос 1</span>
+                        <button id="nextQuestion" class="nav-button">
+                            <span class="material-icons">chevron_right</span>
+                        </button>
+                        <button id="deleteQuestion" class="nav-button danger">
+                            <span class="material-icons">delete</span>
+                        </button>
+                    </div>
+                    
+                    <div class="question-form">
+                        <div class="form-group">
+                            <label for="questionNumber">Номер вопроса:</label>
+                            <input type="text" id="questionNumber" class="form-control" value="1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="questionText">Текст вопроса:</label>
+                            <textarea id="questionText" class="form-control" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="answersText">Варианты ответов (каждый ответ с новой строки):</label>
+                            <textarea id="answersText" class="form-control answers-textarea" rows="5"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Разделитель -->
+                <div class="vertical-splitter" id="verticalSplitter"></div>
+                
+                <!-- Правая часть - предпросмотр -->
+                <div class="preview-panel" id="previewPanel">
+                    <div class="preview-background" id="previewBackground"></div>
+                    <div class="preview-content" id="previewContent"></div>
+                </div>
+            </div>
+            
+            <!-- Горизонтальный разделитель -->
+            <div class="horizontal-splitter" id="horizontalSplitter"></div>
+            
+            <!-- Панель настроек -->
+            <div class="settings-panel" id="settingsPanel">
+                <div class="settings-tabs">
+                    <button class="settings-tab active" data-tab="design">Дизайн</button>
+                    <button class="settings-tab" data-tab="export">Экспорт</button>
+                </div>
+                
+                <div class="settings-content">
+                    <!-- Настройки дизайна -->
+                    <div class="settings-section active" id="design-settings">
+                        <div class="form-group">
+                            <label for="backgroundColor">Цвет фона:</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="backgroundColor" value="#f5f5f5">
+                                <input type="text" id="backgroundColorHex" value="#f5f5f5" maxlength="7">
+                                <button class="btn-transparent" data-target="backgroundColor">Прозрачный</button>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Шрифт:</label>
+                            <select id="fontFamily" class="form-control">
+                                <option value="Arial, sans-serif">Arial</option>
+                                <option value="Verdana, sans-serif">Verdana</option>
+                                <option value="'Roboto', sans-serif" selected>Roboto</option>
+                                <option value="'Open Sans', sans-serif">Open Sans</option>
+                                <option value="'Montserrat', sans-serif">Montserrat</option>
+                                <option value="'Roboto Slab', serif">Roboto Slab</option>
+                                <option value="'Lato', sans-serif">Lato</option>
+                                <option value="'Poppins', sans-serif">Poppins</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="customFontUrl">Свой шрифт (Google Fonts URL):</label>
+                            <input type="text" id="customFontUrl" class="form-control" placeholder="https://fonts.googleapis.com/css?family=...">
+                            <button id="loadFont" class="btn-secondary">
+                                <span class="material-icons">font_download</span> Загрузить
+                            </button>
+                        </div>
+                        
+                        <div class="style-accordion">
+                            <div class="accordion-header">
+                                <span class="material-icons">expand_more</span>
+                                <h3>Настройки вопросов</h3>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="form-group">
+                                    <label for="questionTextColor">Цвет текста:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="questionTextColor" value="#000000">
+                                        <input type="text" id="questionTextColorHex" value="#000000" maxlength="7">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="questionBgColor">Цвет фона:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="questionBgColor" value="#ffffff">
+                                        <input type="text" id="questionBgColorHex" value="#ffffff" maxlength="7">
+                                        <button class="btn-transparent" data-target="questionBgColor">Прозрачный</button>
+                                        <button class="btn-link" data-source="questionBgColor" data-target="questionBorderColor">
+                                            <span class="material-icons">link</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="questionBorderColor">Цвет обводки:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="questionBorderColor" value="#000000">
+                                        <input type="text" id="questionBorderColorHex" value="#000000" maxlength="7">
+                                        <button class="btn-transparent" data-target="questionBorderColor">Прозрачный</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="questionFontSize">Размер шрифта (px):</label>
+                                    <input type="number" id="questionFontSize" class="form-control" min="8" max="72" value="16">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="style-accordion">
+                            <div class="accordion-header">
+                                <span class="material-icons">expand_more</span>
+                                <h3>Настройки ответов</h3>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="form-group">
+                                    <label for="answerTextColor">Цвет текста:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="answerTextColor" value="#000000">
+                                        <input type="text" id="answerTextColorHex" value="#000000" maxlength="7">
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerBgColor">Цвет фона:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="answerBgColor" value="#f0f0f0">
+                                        <input type="text" id="answerBgColorHex" value="#f0f0f0" maxlength="7">
+                                        <button class="btn-transparent" data-target="answerBgColor">Прозрачный</button>
+                                        <button class="btn-link" data-source="answerBgColor" data-target="answerBorderColor">
+                                            <span class="material-icons">link</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerBorderColor">Цвет обводки:</label>
+                                    <div class="color-picker-group">
+                                        <input type="color" id="answerBorderColor" value="#cccccc">
+                                        <input type="text" id="answerBorderColorHex" value="#cccccc" maxlength="7">
+                                        <button class="btn-transparent" data-target="answerBorderColor">Прозрачный</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerFontSize">Размер шрифта (px):</label>
+                                    <input type="number" id="answerFontSize" class="form-control" min="8" max="72" value="14">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="style-accordion">
+                            <div class="accordion-header">
+                                <span class="material-icons">expand_more</span>
+                                <h3>Настройки рамок</h3>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="form-group">
+                                    <label for="borderRadius">Скругление углов (px):</label>
+                                    <input type="number" id="borderRadius" class="form-control" min="0" max="50" value="5">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="questionPadding">Отступ внутри вопроса (px):</label>
+                                    <input type="number" id="questionPadding" class="form-control" min="0" max="50" value="10">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerPadding">Отступ внутри ответа (px):</label>
+                                    <input type="number" id="answerPadding" class="form-control" min="0" max="50" value="8">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="questionMargin">Отступ между вопросами (px):</label>
+                                    <input type="number" id="questionMargin" class="form-control" min="0" max="50" value="15">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerMargin">Отступ между ответами (px):</label>
+                                    <input type="number" id="answerMargin" class="form-control" min="0" max="50" value="5">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="answerIndent">Отступ ответов от вопроса (px):</label>
+                                    <input type="number" id="answerIndent" class="form-control" min="0" max="100" value="20">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Настройки экспорта -->
+                    <div class="settings-section" id="export-settings">
+                        <div class="form-group">
+                            <label for="exportWidth">Ширина изображения (px):</label>
+                            <input type="number" id="exportWidth" class="form-control" min="100" max="5000" value="800">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="exportHeight">Высота изображения (px):</label>
+                            <input type="number" id="exportHeight" class="form-control" min="100" max="5000" value="600">
+                            <button id="lockAspectRatio" class="btn-link">
+                                <span class="material-icons">link</span> Сохранить пропорции
+                            </button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="exportScale">Масштаб:</label>
+                            <input type="number" id="exportScale" class="form-control" min="0.5" max="5" step="0.1" value="1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="exportBgColor">Цвет фона экспорта:</label>
+                            <div class="color-picker-group">
+                                <input type="color" id="exportBgColor" value="#ffffff">
+                                <input type="text" id="exportBgColorHex" value="#ffffff" maxlength="7">
+                                <button class="btn-transparent" data-target="exportBgColor">Прозрачный</button>
+                            </div>
+                        </div>
+                        
+                        <div class="export-preview-container">
+                            <label>Предпросмотр экспорта:</label>
+                            <div class="export-preview" id="exportPreview"></div>
+                        </div>
+                        
+                        <button id="exportBtn" class="btn-primary">
+                            <span class="material-icons">download</span> Экспортировать в PNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
