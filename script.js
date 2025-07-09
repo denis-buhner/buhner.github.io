@@ -3,9 +3,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const state = {
         questions: [
             {
+                type: "qa",
                 number: "1",
                 text: "",
-                answers: [""]
+                answers: [""],
+                rightColumn: []
             }
         ],
         currentQuestionIndex: 0,
@@ -48,8 +50,10 @@ document.addEventListener('DOMContentLoaded', function() {
         questionNumber: document.getElementById('questionNumber'),
         questionText: document.getElementById('questionText'),
         answersText: document.getElementById('answersText'),
+        rightColumnText: document.getElementById('rightColumnText'),
         prevQuestion: document.getElementById('prevQuestion'),
         nextQuestion: document.getElementById('nextQuestion'),
+        changeType: document.getElementById('changeType'),
         deleteQuestion: document.getElementById('deleteQuestion'),
         questionCounter: document.getElementById('questionCounter'),
         verticalSplitter: document.getElementById('verticalSplitter'),
@@ -59,7 +63,10 @@ document.addEventListener('DOMContentLoaded', function() {
         exportBtn: document.getElementById('exportBtn'),
         loadFont: document.getElementById('loadFont'),
         customFontUrl: document.getElementById('customFontUrl'),
-        lockAspectRatio: document.getElementById('lockAspectRatio')
+        lockAspectRatio: document.getElementById('lockAspectRatio'),
+        questionTypeModal: document.getElementById('questionTypeModal'),
+        questionTextLabel: document.getElementById('questionTextLabel'),
+        answersTextLabel: document.getElementById('answersTextLabel')
     };
 
     // Инициализация приложения
@@ -74,13 +81,21 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupEventListeners() {
         // Навигация по вопросам
         elements.prevQuestion.addEventListener('click', () => navigateQuestions(-1));
-        elements.nextQuestion.addEventListener('click', () => navigateQuestions(1));
+        elements.nextQuestion.addEventListener('click', function() {
+            if (state.currentQuestionIndex === state.questions.length - 1) {
+                showQuestionTypeModal(true);
+            } else {
+                navigateQuestions(1);
+            }
+        });
+        elements.changeType.addEventListener('click', () => showQuestionTypeModal(false));
         elements.deleteQuestion.addEventListener('click', deleteCurrentQuestion);
 
         // Изменение данных вопроса
         elements.questionNumber.addEventListener('input', handleQuestionNumberChange);
         elements.questionText.addEventListener('input', handleQuestionTextChange);
         elements.answersText.addEventListener('input', handleAnswersTextChange);
+        elements.rightColumnText.addEventListener('input', handleRightColumnChange);
 
         // Перетаскивание разделителей
         setupSplittersDrag();
@@ -91,6 +106,54 @@ document.addEventListener('DOMContentLoaded', function() {
         // Экспорт
         elements.exportBtn.addEventListener('click', exportToPNG);
         elements.loadFont.addEventListener('click', loadCustomFont);
+
+        // Модальное окно выбора типа вопроса
+        document.querySelectorAll('.question-type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                const modal = document.getElementById('questionTypeModal');
+                
+                if (modal.dataset.currentText !== undefined) {
+                    // Смена типа существующего вопроса
+                    state.questions[state.currentQuestionIndex] = {
+                        type: type,
+                        number: state.questions[state.currentQuestionIndex].number,
+                        text: modal.dataset.currentText,
+                        answers: modal.dataset.currentAnswers.split('\n'),
+                        rightColumn: type === 'match' ? modal.dataset.currentRightColumn.split('\n') : []
+                    };
+                } else {
+                    // Добавление нового вопроса
+                    addNewQuestion(type);
+                }
+                
+                modal.style.display = 'none';
+                delete modal.dataset.currentText;
+                delete modal.dataset.currentAnswers;
+                delete modal.dataset.currentRightColumn;
+                updateQuestionForm();
+                updatePreview();
+            });
+        });
+
+        // Закрытие модального окна при клике вне его
+        elements.questionTypeModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+    }
+
+    // Показать модальное окно выбора типа вопроса
+    function showQuestionTypeModal(isNewQuestion = false) {
+        if (!isNewQuestion) {
+            // Сохраняем текущие данные перед сменой типа
+            const currentQuestion = state.questions[state.currentQuestionIndex];
+            document.getElementById('questionTypeModal').dataset.currentText = currentQuestion.text;
+            document.getElementById('questionTypeModal').dataset.currentAnswers = currentQuestion.answers.join('\n');
+            document.getElementById('questionTypeModal').dataset.currentRightColumn = currentQuestion.rightColumn?.join('\n') || '';
+        }
+        elements.questionTypeModal.style.display = 'flex';
     }
 
     // Обработчики для разделителей
@@ -98,14 +161,12 @@ document.addEventListener('DOMContentLoaded', function() {
         let isVerticalDragging = false;
         let isHorizontalDragging = false;
         
-        // Вертикальный разделитель (между редактором и предпросмотром)
         elements.verticalSplitter.addEventListener('mousedown', (e) => {
             isVerticalDragging = true;
             document.body.style.cursor = 'col-resize';
             e.preventDefault();
         });
         
-        // Горизонтальный разделитель (между контентом и настройками)
         elements.horizontalSplitter.addEventListener('mousedown', (e) => {
             isHorizontalDragging = true;
             document.body.style.cursor = 'row-resize';
@@ -139,6 +200,13 @@ document.addEventListener('DOMContentLoaded', function() {
             isHorizontalDragging = false;
             document.body.style.cursor = '';
         });
+    }
+
+    // Обработчик изменения правого столбца для типа "Сопоставить"
+    function handleRightColumnChange(e) {
+        const answers = e.target.value.split('\n').filter(answer => answer.trim() !== '');
+        state.questions[state.currentQuestionIndex].rightColumn = answers.length > 0 ? answers : [""];
+        updatePreview();
     }
 
     // Обработчик изменения текста ответов
@@ -351,18 +419,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (newIndex >= 0 && newIndex < state.questions.length) {
             state.currentQuestionIndex = newIndex;
             updateQuestionForm();
-        } else if (direction === 1 && newIndex === state.questions.length) {
-            addNewQuestion();
         }
     }
 
     // Добавление нового вопроса
-    function addNewQuestion() {
+    function addNewQuestion(type = 'qa') {
         const newNumber = state.questions.length + 1;
         state.questions.push({
+            type: type,
             number: newNumber.toString(),
             text: "",
-            answers: [""]
+            answers: type === 'match' ? ["", ""] : [""],
+            rightColumn: type === 'match' ? ["", ""] : []
         });
         
         state.currentQuestionIndex = state.questions.length - 1;
@@ -396,13 +464,38 @@ document.addEventListener('DOMContentLoaded', function() {
         elements.questionText.value = currentQuestion.text;
         elements.answersText.value = currentQuestion.answers.join('\n');
         
+        // Настройки для разных типов вопросов
+        switch(currentQuestion.type) {
+            case 'qa':
+                elements.questionTextLabel.textContent = 'Текст вопроса:';
+                elements.answersTextLabel.textContent = 'Варианты ответов (каждый ответ с новой строки):';
+                document.querySelector('.match-fields').style.display = 'none';
+                break;
+            case 'match':
+                elements.questionTextLabel.textContent = 'Формулировка задания:';
+                elements.answersTextLabel.textContent = 'Левый столбец (каждый элемент с новой строки):';
+                document.querySelector('.match-fields').style.display = 'block';
+                elements.rightColumnText.value = currentQuestion.rightColumn.join('\n');
+                break;
+            case 'fill':
+                elements.questionTextLabel.textContent = 'Текст с пропущенным:';
+                elements.answersTextLabel.textContent = 'Пропущенное слово:';
+                document.querySelector('.match-fields').style.display = 'none';
+                break;
+            case 'solve':
+                elements.questionTextLabel.textContent = 'Пример:';
+                elements.answersTextLabel.textContent = 'Поле для ответа (не обязательно)';
+                document.querySelector('.match-fields').style.display = 'none';
+        }
+        
         // Обновляем счетчик вопросов
         elements.questionCounter.textContent = `Вопрос ${state.currentQuestionIndex + 1} из ${state.questions.length}`;
         
         // Обновляем состояние кнопок навигации
         elements.prevQuestion.disabled = state.currentQuestionIndex === 0;
-        elements.nextQuestion.innerHTML = state.currentQuestionIndex === state.questions.length - 1 ? 
-            '<span class="material-icons">add</span>' : '<span class="material-icons">chevron_right</span>';
+        elements.nextQuestion.innerHTML = state.currentQuestionIndex === state.questions.length - 1 
+            ? '<span class="material-icons">library_add</span>' 
+            : '<span class="material-icons">chevron_right</span>';
         elements.deleteQuestion.disabled = state.questions.length <= 1;
     }
 
@@ -469,23 +562,122 @@ document.addEventListener('DOMContentLoaded', function() {
             answersDiv.className = 'answers-preview';
             answersDiv.style.marginLeft = `${state.styles.answerIndent}px`;
             
-            question.answers.forEach((answer, aIndex) => {
-                if (answer.trim() === "") return;
-                
-                const answerDiv = document.createElement('div');
-                answerDiv.className = 'answer-preview';
-                answerDiv.textContent = answer;
-                answerDiv.style.border = `1px solid ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
-                answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
-                answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
-                answerDiv.style.color = state.styles.answerTextColor;
-                answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
-                answerDiv.style.fontFamily = state.styles.fontFamily;
-                answerDiv.style.padding = `${state.styles.answerPadding}px`;
-                answerDiv.style.marginBottom = `${state.styles.answerMargin}px`;
-                
-                answersDiv.appendChild(answerDiv);
-            });
+            // Обработка разных типов вопросов
+            switch(question.type) {
+                case 'qa':
+                    // Обычный вопрос-ответ
+                    question.answers.forEach((answer, aIndex) => {
+                        if (answer.trim() === "") return;
+                        
+                        const answerDiv = document.createElement('div');
+                        answerDiv.className = 'answer-preview';
+                        answerDiv.textContent = answer;
+                        answerDiv.style.border = `1px solid ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
+                        answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
+                        answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
+                        answerDiv.style.color = state.styles.answerTextColor;
+                        answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
+                        answerDiv.style.fontFamily = state.styles.fontFamily;
+                        answerDiv.style.padding = `${state.styles.answerPadding}px`;
+                        answerDiv.style.marginBottom = `${state.styles.answerMargin}px`;
+                        
+                        answersDiv.appendChild(answerDiv);
+                    });
+                    break;
+                    
+                case 'match':
+                    // Сопоставление (два столбца)
+                    const matchContainer = document.createElement('div');
+                    matchContainer.style.display = 'flex';
+                    matchContainer.style.gap = '20px';
+                    
+                    const leftColumn = document.createElement('div');
+                    leftColumn.style.flex = '1';
+                    
+                    const rightColumn = document.createElement('div');
+                    rightColumn.style.flex = '1';
+                    
+                    // Левый столбец
+                    question.answers.forEach((answer, aIndex) => {
+                        if (answer.trim() === "") return;
+                        
+                        const answerDiv = document.createElement('div');
+                        answerDiv.className = 'answer-preview';
+                        answerDiv.textContent = answer;
+                        answerDiv.style.border = `1px solid ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
+                        answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
+                        answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
+                        answerDiv.style.color = state.styles.answerTextColor;
+                        answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
+                        answerDiv.style.fontFamily = state.styles.fontFamily;
+                        answerDiv.style.padding = `${state.styles.answerPadding}px`;
+                        answerDiv.style.marginBottom = `${state.styles.answerMargin}px`;
+                        
+                        leftColumn.appendChild(answerDiv);
+                    });
+                    
+                    // Правый столбец
+                    question.rightColumn.forEach((answer, aIndex) => {
+                        if (answer.trim() === "") return;
+                        
+                        const answerDiv = document.createElement('div');
+                        answerDiv.className = 'answer-preview';
+                        answerDiv.textContent = answer;
+                        answerDiv.style.border = `1px solid ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
+                        answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
+                        answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
+                        answerDiv.style.color = state.styles.answerTextColor;
+                        answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
+                        answerDiv.style.fontFamily = state.styles.fontFamily;
+                        answerDiv.style.padding = `${state.styles.answerPadding}px`;
+                        answerDiv.style.marginBottom = `${state.styles.answerMargin}px`;
+                        
+                        rightColumn.appendChild(answerDiv);
+                    });
+                    
+                    matchContainer.appendChild(leftColumn);
+                    matchContainer.appendChild(rightColumn);
+                    answersDiv.appendChild(matchContainer);
+                    break;
+                    
+                case 'fill':
+                    // Вставь пропущенное
+                    if (question.answers[0] && question.answers[0].trim() !== "") {
+                        const answerDiv = document.createElement('div');
+                        answerDiv.className = 'answer-preview';
+                        answerDiv.textContent = question.answers[0];
+                        answerDiv.style.border = `1px solid ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
+                        answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
+                        answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
+                        answerDiv.style.color = state.styles.answerTextColor;
+                        answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
+                        answerDiv.style.fontFamily = state.styles.fontFamily;
+                        answerDiv.style.padding = `${state.styles.answerPadding}px`;
+                        answerDiv.style.marginBottom = `${state.styles.answerMargin}px`;
+                        
+                        answersDiv.appendChild(answerDiv);
+                    }
+                    break;
+                    
+                case 'solve':
+                    // Решить пример
+                    const exampleDiv = document.createElement('div');
+                    exampleDiv.style.marginBottom = '10px';
+
+                    const answerDiv = document.createElement('div');
+                    answerDiv.className = 'answer-preview';
+                    answerDiv.style.border = `1px dashed ${state.styles.answerBorderColor === 'transparent' ? 'transparent' : state.styles.answerBorderColor}`;
+                    answerDiv.style.borderRadius = `${state.styles.borderRadius}px`;
+                    answerDiv.style.backgroundColor = state.styles.answerBgColor === 'transparent' ? 'transparent' : state.styles.answerBgColor;
+                    answerDiv.style.minHeight = '30px';
+                    answerDiv.style.fontSize = `${state.styles.answerFontSize}px`;
+                    answerDiv.style.fontFamily = state.styles.fontFamily;
+                    answerDiv.style.padding = `${state.styles.answerPadding}px`;
+
+                    answersDiv.appendChild(exampleDiv);
+                    answersDiv.appendChild(answerDiv);
+                    break;
+            }
             
             questionDiv.appendChild(questionHeader);
             questionDiv.appendChild(answersDiv);
