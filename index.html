@@ -11,23 +11,51 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Модальное окно выбора типа вопроса -->
+    <div class="modal-overlay" id="questionTypeModal">
+        <div class="modal-content">
+            <h3>Выберите тип вопроса</h3>
+            <div class="question-type-options">
+                <button class="question-type-btn" data-type="qa">
+                    <span class="material-icons">question_answer</span>
+                    Вопрос-ответ
+                </button>
+                <button class="question-type-btn" data-type="match">
+                    <span class="material-icons">compare_arrows</span>
+                    Сопоставить
+                </button>
+                <button class="question-type-btn" data-type="fill">
+                    <span class="material-icons">create</span>
+                    Вставь пропущенное
+                </button>
+                <button class="question-type-btn" data-type="solve">
+                    <span class="material-icons">calculate</span>
+                    Решить пример
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="app-container">
         <div class="main-split-container">
             <div class="content-split-container">
                 <!-- Левая часть - редактор -->
                 <div class="edit-panel" id="editPanel">
                     <div class="question-controls">
-                        <button id="prevQuestion" class="nav-button" disabled>
-                            <span class="material-icons">chevron_left</span>
-                        </button>
-                        <span id="questionCounter">Вопрос 1</span>
-                        <button id="nextQuestion" class="nav-button">
-                            <span class="material-icons">chevron_right</span>
-                        </button>
-                        <button id="deleteQuestion" class="nav-button danger">
-                            <span class="material-icons">delete</span>
-                        </button>
-                    </div>
+    <button id="prevQuestion" class="nav-button" disabled>
+        <span class="material-icons">chevron_left</span>
+    </button>
+    <span id="questionCounter">Вопрос 1</span>
+    <button id="nextQuestion" class="nav-button">
+        <span class="material-icons">chevron_right</span>
+    </button>
+    <button id="changeType" class="nav-button" title="Изменить тип вопроса">
+        <span class="material-icons">swap_horiz</span>
+    </button>
+    <button id="deleteQuestion" class="nav-button danger">
+        <span class="material-icons">delete</span>
+    </button>
+</div>
                     
                     <div class="question-form">
                         <div class="form-group">
@@ -36,13 +64,19 @@
                         </div>
                         
                         <div class="form-group">
-                            <label for="questionText">Текст вопроса:</label>
+                            <label id="questionTextLabel" for="questionText">Текст вопроса:</label>
                             <textarea id="questionText" class="form-control" rows="3"></textarea>
                         </div>
                         
                         <div class="form-group">
-                            <label for="answersText">Варианты ответов (каждый ответ с новой строки):</label>
+                            <label id="answersTextLabel" for="answersText">Варианты ответов (каждый ответ с новой строки):</label>
                             <textarea id="answersText" class="form-control answers-textarea" rows="5"></textarea>
+                        </div>
+
+                        <!-- Дополнительные поля для разных типов вопросов -->
+                        <div class="form-group match-fields" style="display: none;">
+                            <label for="rightColumnText">Правый столбец (каждый элемент с новой строки):</label>
+                            <textarea id="rightColumnText" class="form-control answers-textarea" rows="5"></textarea>
                         </div>
                     </div>
                 </div>
@@ -67,6 +101,10 @@
                     <button class="settings-tab" data-tab="export">Экспорт</button>
                 </div>
                 
+                <div class="settings-content">
+                    <!-- Настройки дизайна -->
+                    <div class="settings-section active" id="design-settings">
+                        
                         
                         <div class="form-group">
                             <label>Шрифт:</label>
@@ -223,7 +261,7 @@
                         <div class="form-group">
                             <label for="exportHeight">Высота изображения (px):</label>
                             <input type="number" id="exportHeight" class="form-control" min="100" max="5000" value="600">
-                            <button id="lockAspectRatio" class="btn-link">
+                            <button id="lockAspectRatio" class="btn-link" data-source="lockAspectRatio">
                                 <span class="material-icons">link</span> Сохранить пропорции
                             </button>
                         </div>
