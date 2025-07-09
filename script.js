@@ -484,7 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 break;
             case 'solve':
                 elements.questionTextLabel.textContent = 'Пример:';
-                elements.answersTextLabel.textContent = 'Поле для ответа (не обязательно)';
+                elements.answersTextLabel.textContent = 'Поле для ответа (не заполняйте это поле)';
                 document.querySelector('.match-fields').style.display = 'none';
         }
         
